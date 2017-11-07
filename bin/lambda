@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+"use strict";
+
+const fs       = require("fs");
+const path     = require("path");
+const archiver = require("archiver");
+
+const TEMP_FOLDER   = "./temp";
+const OUTPUT_FOLDER = "./dist";
+const OUTPUT_FILE   = `${OUTPUT_FOLDER}/dist.zip`;
+
+// 1. prepare distribution output folder (or clean when existing)
+
+if (!fs.existsSync( TEMP_FOLDER )){
+    fs.mkdirSync( TEMP_FOLDER );
+}
+else {
+    //rmDir( TEMP_FOLDER );
+}
+
+// 2. copy Node modules into output folder
+
+copyFolderRecursiveSync( "./node_modules", TEMP_FOLDER );
+
+// 3. copy source files into output folder
+
+copyFolderRecursiveSync( "./src/", TEMP_FOLDER );
+
+// 4. copy Lambda entry point into output folder
+
+copyFileSync( "./src/index.lambda.js", TEMP_FOLDER + "/index.js" );
+
+// 5. ZIP distribution directory contents
+
+const output  = fs.createWriteStream( OUTPUT_FILE );
+const archive = archiver("zip", {
+    zlib: { level: 9 }
+});
+
+output.on('close', () => {
+    console.log( `Written ${archive.pointer()} total bytes to ${OUTPUT_FILE}` );
+});
+
+archive.on('warning', ( err ) => {
+    if (err.code === 'ENOENT') {
+        // log warning
+    } else {
+        // throw error
+        throw err;
+    }
+});
+archive.on('error', (err) => {
+    throw err;
+});
+
+archive.pipe( output );
+archive.directory( `${TEMP_FOLDER}`, false );
+archive.finalize();
+
+/* internal methods */
+
+function rmDir( directory ) {
+    const files = fs.readdirSync( directory );
+    if ( files.length > 0 ) {
+        for ( let i = 0; i < files.length; ++i ) {
+            const filePath = `${OUTPUT_FOLDER}/${files[i]}`;
+            if ( fs.statSync( filePath ).isFile()) {
+                fs.unlinkSync( filePath );
+            }
+            else {
+                rmDir( filePath );
+            }
+        }
+    }
+    fs.rmdirSync( directory );
+}
+
+function copyFileSync( source, target ) {
+    let targetFile = target;
+
+    //if target is a directory a new file with the same name will be created
+    if ( fs.existsSync( target ) && fs.lstatSync( target ).isDirectory() ) {
+        targetFile = path.join( target, path.basename( source ) );
+    }
+    fs.writeFileSync(targetFile, fs.readFileSync(source));
+}
+
+function copyFolderRecursiveSync( source, target ) {
+    let files = [];
+
+    //check if folder needs to be created or integrated
+    var targetFolder = path.join( target, path.basename( source ) );
+    if ( !fs.existsSync( targetFolder ) ) {
+        fs.mkdirSync( targetFolder );
+    }
+
+    //copy
+    if ( fs.lstatSync( source ).isDirectory() ) {
+        files = fs.readdirSync( source );
+        files.forEach(( file ) => {
+            var curSource = path.join( source, file );
+            if ( fs.lstatSync( curSource ).isDirectory() ) {
+                copyFolderRecursiveSync( curSource, targetFolder );
+            } else {
+                copyFileSync( curSource, targetFolder );
+            }
+        });
+    }
+}
