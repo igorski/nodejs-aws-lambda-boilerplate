@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs       = require("fs");
-const path     = require("path");
-const archiver = require("archiver");
+const fs          = require("fs");
+const path        = require("path");
+const archiver    = require("archiver");
+const {spawnSync} = require('child_process');
 
 const TEMP_FOLDER   = "./temp";
 const OUTPUT_FOLDER = "./dist";
@@ -11,12 +12,7 @@ const OUTPUT_FILE   = `${OUTPUT_FOLDER}/dist.zip`;
 
 // 1. prepare distribution output folder (or clean when existing)
 
-if (!fs.existsSync( TEMP_FOLDER )){
-    fs.mkdirSync( TEMP_FOLDER );
-}
-else {
-    //rmDir( TEMP_FOLDER );
-}
+[ OUTPUT_FOLDER, TEMP_FOLDER ].forEach(( dir ) => mkDir( dir ));
 
 // 2. copy Node modules into output folder
 
@@ -30,7 +26,11 @@ copyFolderRecursiveSync( "./src/", TEMP_FOLDER );
 
 copyFileSync( "./src/index.lambda.js", TEMP_FOLDER + "/index.js" );
 
-// 5. ZIP distribution directory contents
+// 5. transpile code for us with Node 6.x (AWS Lambda max supported environment)
+
+const babelProcess = spawnSync( "node", [ "node_modules/babel-cli/bin/babel.js", `${TEMP_FOLDER}`, "-d", `${TEMP_FOLDER}`, "--ignore", "node_modules" ]);
+
+// 6. ZIP distribution directory contents
 
 const output  = fs.createWriteStream( OUTPUT_FILE );
 const archive = archiver("zip", {
@@ -58,6 +58,15 @@ archive.directory( `${TEMP_FOLDER}`, false );
 archive.finalize();
 
 /* internal methods */
+
+function mkDir( directory ) {
+    if (!fs.existsSync( directory )) {
+        fs.mkdirSync( directory );
+    }
+    else {
+        //rmDir( directory );
+    }
+}
 
 function rmDir( directory ) {
     const files = fs.readdirSync( directory );

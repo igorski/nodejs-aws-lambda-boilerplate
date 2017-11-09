@@ -5,6 +5,19 @@ run as an AWS Lambda.
 
 The project can be run locally using Express.
 
+## Application setup / ES language level
+
+The application can be written using ES2017/ES8, but will be compiled to
+ES2016 for use in AWS Lambda (which currently supports only Node.js 6.x).
+
+You are however free to use full ES8 syntax (including _async/await_) as
+the application will be transpiled when built for Lambda using Babel.
+Resolving alldependencies using a regular
+
+    npm install
+    
+Should suffice.
+
 ## Application configuration
 
 When running the application locally using Express:
@@ -91,4 +104,4 @@ Simply run:
     npm run deploy
     
 After which the _./dist_-directory will contain _dist.zip_ which can
-be deployed using the AWS Lambda console.
+be deployed using the AWS Lambda console or fed into your CI/CD pipeline.

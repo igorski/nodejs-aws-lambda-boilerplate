@@ -5,7 +5,7 @@
 
 const Service = require("./services/main");
 
-exports.handler = (event, context, callback) => {
+exports.handler = async( event, context, callback ) => {
 
     const result = {};
     let success  = false;
@@ -25,7 +25,7 @@ exports.handler = (event, context, callback) => {
 
     try {
         // application magic goes here
-        const output = Service.process( payload );
+        const output = await Service.process( payload );
         if ( typeof output === "object" ) {
             // conversion success
             success = true;

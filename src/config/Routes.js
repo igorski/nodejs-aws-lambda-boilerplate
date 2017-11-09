@@ -1,7 +1,7 @@
 "use strict";
 
 const express = require("express");
-const router = express.Router();
+const router  = express.Router();
 const Service = require( "../services/main" );
 
 /* request processor */
@@ -16,22 +16,26 @@ router.get( "/", ( req, res ) => {
     res.json({ message: "Lambda service operational"});
 });
 
-// when POSTing data, process it using the AssemblyService
+// when POSTing data, process it using your custom Service
 
-router.post( "/", ( req, res ) => {
-    const result = Service.process( req.body );
+router.post( "/", async( req, res, next ) => {
+    let result;
+    try {
+        result = await Service.process(req.body);
 
-    if ( result instanceof Error ) {
-        // request Error
-        onError( res, result );
+        if ( result instanceof Error ) {
+            // request Error
+            onError( res, result );
+        }
+        else if (typeof result === "object") {
+            // request success
+            onSuccess( res, result );
+        }
     }
-    else if ( typeof result === "object" ) {
-        // request success
-        onSuccess( res, result );
-    }
-    else {
+    catch ( e ) {
         // unknown Error
-        onError( res, result );
+        onError( res, e );
+        next( e );
     }
 });
 

@@ -3,15 +3,16 @@
 module.exports = {
 
     /**
-     * process the incoming request
-     * return payload Object on success
+     * process the incoming request return payload Object on success
      * or Error Object on failure
+     *
+     * this can be asynchronous when necessary
      *
      * @public
      * @param {Object} request
      * @return {Object|Error}
      */
-    process( request ) {
+    async process( request ) {
 
         // update implementation as your API requires
 
